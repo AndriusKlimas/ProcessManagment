@@ -15,7 +15,7 @@ spec:
       containers:
       - name: login-page-svc
         image: andriuskl/login-page-svc:2.0.5
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         # resources:
         #   limits:
         #     memory: "128Mi"

@@ -1,0 +1,118 @@
+KinD setup for the music application
+====================================
+
+Prerequisites
+-------------
+
+- Docker Desktop must be running.
+- kind and kubectl must be installed.
+- Run all commands from the repository root:
+  C:\Users\andri\Desktop\year3sem1\Production Precess\process-management-y-3
+
+Create the KinD cluster
+-----------------------
+
+The repository includes kind-config.yml, which creates one control-plane node
+and two worker nodes. It also maps ports 80 and 443 from KinD to the local
+computer.
+
+    kind create cluster --config .\kind-config.yml
+
+Install the NGINX Ingress Controller
+-------------------------------------
+
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+
+Wait until the controller is ready:
+
+    kubectl wait --namespace ingress-nginx `
+      --for=condition=ready pod `
+      --selector=app.kubernetes.io/component=controller `
+      --timeout=180s
+
+Create the application namespace
+--------------------------------
+
+The Kubernetes manifests use the music-app namespace. Create it before
+applying the application resources:
+
+    kubectl create namespace music-app --dry-run=client -o yaml | kubectl apply -f -
+
+Deploy the application
+----------------------
+
+Apply the development overlay from the repository root. Do not apply only
+base\deployment, because the development overlay also adds the localhost
+Ingress configuration.
+
+    kubectl apply -k .\base\dev
+
+Check the deployment
+--------------------
+
+    kubectl get pods -n music-app
+    kubectl get services -n music-app
+    kubectl get ingress -n music-app
+
+Wait until the application pods show Running or Completed. If a pod is not
+starting, inspect it with:
+
+    kubectl describe pod <pod-name> -n music-app
+    kubectl logs <pod-name> -n music-app
+
+Open the application
+---------------------
+
+The Ingress currently defines these paths:
+
+    http://localhost/get-catalog
+    http://localhost/login-page
+    http://localhost/add-product-page
+    http://localhost/play-songs
+    http://localhost/history-page
+
+The root URL http://localhost/ is not currently configured by the Ingress.
+
+Build and load Docker images
+----------------------------
+
+This setup uses locally built images. Build the six application images with
+the tag used by the development manifests:
+
+    docker build -t andriuskl/catalog-svc_1:2.0.5 .\catalog-svc
+    docker build -t andriuskl/shop-front-svc:2.0.5 .\shop-front-svc
+    docker build -t andriuskl/product-admin-svc:2.0.5 .\product-admin-svc
+    docker build -t andriuskl/song-player-svc:2.0.5 .\song-player-svc
+    docker build -t andriuskl/history-svc:2.0.5 .\history-svc
+    docker build -t andriuskl/login-page-svc:2.0.5 .\login-page-svc
+
+Load each image into KinD. For example:
+
+    kind load docker-image andriuskl/catalog-svc_1:2.0.5 --name music-app
+    kind load docker-image andriuskl/shop-front-svc:2.0.5 --name music-app
+
+Repeat the load command for the other four images. Because the deployment
+manifests currently use imagePullPolicy: Always, Kubernetes may still try to
+pull these images from Docker Hub. Change that policy to IfNotPresent in the
+deployment manifests when using only local images.
+
+If pods show ImagePullBackOff, check the image names, tags, and pull policy.
+
+Port 80 already in use
+----------------------
+
+If cluster creation fails because port 80 is already in use, change hostPort
+from 80 to 8080 in kind-config.yml. Recreate the cluster and use:
+
+    http://localhost:8080/get-catalog
+
+Stop and remove the cluster
+---------------------------
+
+To remove the application resources:
+
+    kubectl delete -k .\base\dev
+
+To remove the KinD cluster:
+
+    kind delete cluster --name music-app

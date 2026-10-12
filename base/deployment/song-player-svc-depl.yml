@@ -15,7 +15,7 @@ spec:
       containers:
       - name: song-player-svc
         image: andriuskl/song-player-svc:2.0.5
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         # resources:
         #   limits:
         #     memory: "128Mi"
