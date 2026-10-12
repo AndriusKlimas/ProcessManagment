@@ -1,0 +1,369 @@
+MUSIC WEBSITE - ARCHITECTURE AND PROJECT NOTES
+===============================================
+
+1. What the project is
+----------------------
+This is a small music website built from Flask microservices, Redis, Nginx,
+Docker Compose, and Kubernetes.
+
+The main browser request path is:
+
+    Browser
+       |
+       v
+    Kubernetes Ingress (or Docker Compose Nginx gateway)
+       |
+       v
+    Flask services
+       |
+       v
+    Redis and uploaded MP3 files
+
+The application allows users to:
+- View a music catalogue
+- Create an account and log in
+- Upload products/songs
+- Play songs
+- View listening history
+
+
+2. Services
+-----------
+
+shop-front-svc
+--------------
+Displays the main catalogue page. It calls catalog-svc to retrieve song
+metadata and renders the result using an HTML template.
+
+Relevant file:
+    shop-front-svc/shop-front-app.py
+
+catalog-svc
+-----------
+Stores and retrieves catalogue data in Redis.
+
+It provides:
+- GET /get-catalog
+- POST /add-product
+
+Relevant file:
+    catalog-svc/catalog-app.py
+
+login-page-svc
+--------------
+Handles:
+- Login page
+- Signup
+- Login
+- Logout
+
+User passwords are stored in the login Redis instance. After login, the
+application sets a userID cookie containing the username.
+
+Relevant file:
+    login-page-svc/login-page.py
+
+product-admin-svc
+-----------------
+Displays the product upload form. When a product is submitted, it:
+1. Saves the uploaded MP3 locally.
+2. Sends the song metadata to catalog-svc.
+3. Redirects the user back to the catalogue.
+
+Relevant file:
+    product-admin-svc/product-admin-app.py
+
+song-player-svc
+---------------
+Finds a song in the catalogue using its audio filename, renders an audio
+player page, and asks history-svc to record the play when a user is logged in.
+
+Relevant file:
+    song-player-svc/song-player.py
+
+history-svc
+-----------
+Stores and displays listening history. Each user has a Redis list containing
+up to the last 100 plays.
+
+Relevant file:
+    history-svc/history-page.py
+
+
+3. Redis data layout
+--------------------
+There are two Redis deployments in Kubernetes:
+
+catalog-db
+----------
+Stores catalogue entries. Catalogue entries are stored as a Redis hash:
+
+    catalog -> song key -> JSON song metadata
+
+login-db
+--------
+Stores users as Redis keys:
+
+    user:username -> password hash
+
+Listening history
+-----------------
+History is currently stored in catalog-db, not in a separate history Redis
+instance. The keys have this form:
+
+    history:username -> list of recently played songs
+
+This is configured in:
+    base/deployment/configmap.yml
+
+The Redis Deployments are defined in:
+    base/deployment/catalog-db-depl.yml
+    base/deployment/login-db-depl.yml
+
+
+4. Request routes
+-----------------
+The Kubernetes Ingress routes public URLs to internal Kubernetes Services.
+
+Main routes:
+
+    /get-catalog       -> shop-front-svc
+    /login-page        -> login-page-svc
+    /login             -> login-page-svc
+    /signup            -> login-page-svc
+    /logout            -> login-page-svc
+    /add-product       -> product-admin-svc
+    /add-product-page  -> product-admin-svc
+    /play-songs        -> song-player-svc
+    /history-page      -> history-svc
+    /log-play          -> history-svc
+
+Development routing:
+    base/dev/ingress-gateway.yml
+
+Production/Azure routing:
+    base/prod/azure-ingress-gateway.yml
+
+
+5. Nginx gateway versus Kubernetes Ingress
+------------------------------------------
+The repository contains two different routing approaches.
+
+Docker Compose approach
+-----------------------
+Docker Compose runs the custom Nginx configuration in:
+
+    gateway/nginx.conf
+
+It listens on host port 85 and proxies requests to services such as:
+
+    shop-front:5000
+    login-page:5000
+    product-admin:5000
+    song-player:5000
+    history:5000
+
+The request path is:
+
+    Browser -> Nginx gateway -> Flask service
+
+Kubernetes approach
+-------------------
+Kubernetes uses an Ingress resource instead:
+
+    Browser -> Kubernetes Ingress -> Kubernetes Service -> Flask Pod
+
+The custom gateway configuration is not currently mounted into the
+Kubernetes gateway Deployment. The gateway Deployment uses nginx:latest with
+the default Nginx configuration, so it appears to be unused when the Ingress
+is enabled.
+
+The actual Kubernetes routing is supplied by the Ingress resources in the
+dev and prod overlays.
+
+
+6. How the base directory works
+-------------------------------
+base/deployment
+---------------
+Contains the shared Kubernetes resources:
+- Redis Deployments and Services
+- Flask service Deployments and Services
+- ConfigMap
+- Secret
+- Gateway Deployment and Service
+- Song-serving Nginx Deployment and Service
+
+Its Kustomization file is:
+    base/deployment/kustomization.yml
+
+base/dev
+--------
+Includes base/deployment, adds the localhost development Ingress, and selects
+Docker image tags for development.
+
+Its Kustomization file is:
+    base/dev/kustomization.yml
+
+base/prod
+---------
+Includes base/deployment, adds the Azure Application Routing Ingress, and
+selects Docker image tags for production.
+
+Its Kustomization file is:
+    base/prod/kustomization.yml
+
+The base deployment Kustomization comments out its own Ingress. Therefore,
+for local Kubernetes use, base/dev is the more complete target.
+
+Recommended local deployment command:
+
+    kubectl apply -k base/dev
+
+Recommended production overlay command:
+
+    kubectl apply -k base/prod
+
+The development overlay was successfully rendered with:
+
+    kubectl kustomize base/dev
+
+
+7. Docker Compose
+-----------------
+Docker Compose is intended to run the services locally without Kubernetes.
+The configuration is in:
+
+    docker-compose.yml
+
+It includes Flask services, Redis, the gateway Nginx container, and the
+song-serving Nginx container.
+
+There is currently a likely naming problem: docker-compose.yml refers to a
+catalog-svc_1 directory, but the repository contains catalog-svc. The image
+names also differ between the dev and prod Kubernetes overlays:
+
+    dev:  andriuskl/catalog-svc
+    prod: andriuskl/catalog-svc_1
+
+These names should be standardised.
+
+
+8. Important issues to fix
+--------------------------
+
+A. Uploaded MP3 files are not shared in Kubernetes
+---------------------------------------------------
+product-admin-svc saves MP3 files inside its own container at:
+
+    /root/app/song-locations/
+
+The separate song-player-nginx Pod does not currently mount the same
+storage. As a result, the song-serving Nginx container will not necessarily
+be able to access uploaded files.
+
+Possible solutions:
+- Use a shared Kubernetes PersistentVolume.
+- Use Azure Blob Storage or another object-storage service.
+- Build a dedicated media/file service.
+- Mount the same shared volume into product-admin-svc and song-player-nginx.
+
+B. Redis data is not persistent
+-------------------------------
+The Redis Deployments do not use PersistentVolumes. Redis data can disappear
+when a Pod is deleted or recreated.
+
+For production, add persistent storage, backups, resource limits, health
+checks, and appropriate Redis authentication.
+
+C. Song-serving Nginx is incomplete
+-----------------------------------
+The file:
+
+    song-player/song-player-nginx.conf
+
+is empty. The Kubernetes song-player-nginx Deployment also does not mount a
+custom configuration or shared MP3 directory.
+
+D. Configuration is only partly used
+-------------------------------------
+base/deployment/configmap.yml defines service URLs and Redis settings, but
+many Python services hardcode their connection values instead of reading
+environment variables.
+
+Services that currently contain hardcoded connection details include:
+- catalog-svc
+- login-page-svc
+- history-svc
+- shop-front-svc
+- song-player-svc
+
+E. Kubernetes Secret values are not being used properly
+--------------------------------------------------------
+The Secret defines FLASK_SECRET_KEY and REDIS_PASSWORD, but the Flask apps
+and Redis clients do not consistently read those values. The Flask secret
+key is hardcoded in login-page-svc.
+
+Base64 encoding in a Kubernetes Secret is not encryption. Default/example
+values should not be used in production.
+
+F. Authentication is weak
+-------------------------
+The application uses a userID cookie containing the username. The cookie is
+not signed, so it should not be trusted as proof of identity.
+
+Other security concerns:
+- Passwords use unsalted SHA-256 instead of a password hashing algorithm.
+- Product upload routes do not appear to enforce authentication.
+- Flask debug mode is enabled in several services.
+- Default secret values are present.
+- Uploaded filenames are used directly and should be validated securely.
+
+G. No resource or health settings
+---------------------------------
+Most Kubernetes Deployments have commented-out resource limits and do not
+have readiness or liveness probes. This can make failures and resource
+pressure harder to detect.
+
+
+9. Suggested startup sequence for Minikube
+-------------------------------------------
+Make sure Docker Desktop is running, then run:
+
+    minikube start
+    minikube addons enable ingress
+    kubectl apply -k base/dev
+    minikube tunnel
+
+You can inspect the application with:
+
+    kubectl get pods -n music-app
+    kubectl get services -n music-app
+    kubectl get ingress -n music-app
+
+The development Ingress uses the host localhost, so the expected application
+entry point is normally:
+
+    http://localhost/
+
+If the Ingress is not responding, inspect the Ingress controller and Pod
+logs before changing application code.
+
+To stop the local environment:
+
+    Stop minikube tunnel with Ctrl+C
+    Stop any dashboard process with Ctrl+C
+    minikube stop
+
+
+10. Short summary
+-----------------
+The project is a music website made from several Flask services. Redis stores
+catalogue data, users, and listening history. Nginx is used for routing and
+static MP3 delivery in the Docker Compose design, while Kubernetes Ingress is
+intended to handle public routing in the Kubernetes design.
+
+The most important unfinished areas are shared MP3 storage, persistent Redis
+storage, wiring the Nginx configurations into Kubernetes, replacing hardcoded
+configuration with environment variables, and improving authentication and
+secret handling.
