@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: history-svc
-        image: andriuskl/history-svc:2.0.5
+        image: andriuskl/history-svc:3.0.1
         imagePullPolicy: IfNotPresent
         # Environment variables for MariaDB connection
         env:

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: product-admin-svc
-        image: andriuskl/product-admin-svc:2.0.5
+        image: andriuskl/product-admin-svc:3.0.1
         imagePullPolicy: IfNotPresent
         # resources:
         #   limits:

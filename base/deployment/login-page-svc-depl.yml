@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: login-page-svc
-        image: andriuskl/login-page-svc:2.0.5
+        image: andriuskl/login-page-svc:3.0.1
         imagePullPolicy: IfNotPresent
         env:
         - name: MARIADB_HOST
