@@ -1,5 +1,15 @@
 stages:
+  - test
   - build
+
+pipeline-test:
+  stage: test
+  script:
+    - echo "GitLab CI pipeline test succeeded"
+    - 'echo "Commit: $CI_COMMIT_SHA"'
+    - 'echo "Ref: $CI_COMMIT_REF_NAME"'
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
 
 build-job:
   stage: build
