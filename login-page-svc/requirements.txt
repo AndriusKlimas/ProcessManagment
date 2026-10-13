@@ -1,2 +1,2 @@
 flask
-redis
+PyMySQL==1.1.1

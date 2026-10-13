@@ -22,3 +22,10 @@ spec:
         #     cpu: "500m"
         ports:
         - containerPort: 80
+        volumeMounts:
+        - name: song-storage
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: song-storage
+        persistentVolumeClaim:
+          claimName: song-storage

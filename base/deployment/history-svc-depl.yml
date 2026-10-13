@@ -16,18 +16,27 @@ spec:
       - name: history-svc
         image: andriuskl/history-svc:2.0.5
         imagePullPolicy: IfNotPresent
-        # Environment variables for Redis connection
+        # Environment variables for MariaDB connection
         env:
-        - name: REDIS_HOST
+        - name: MARIADB_HOST
           valueFrom:
             configMapKeyRef:
               name: app-config
-              key: HISTORY_REDIS_HOST
-        - name: REDIS_PORT
+              key: MARIADB_HOST
+        - name: MARIADB_PORT
           valueFrom:
             configMapKeyRef:
               name: app-config
-              key: HISTORY_REDIS_PORT
+              key: MARIADB_PORT
+        - name: MARIADB_USER
+          value: history_app
+        - name: MARIADB_DATABASE
+          value: history
+        - name: MARIADB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-app
+              key: historyPassword
         # resources:
         #   limits:
         #     memory: "128Mi"

@@ -1,11 +1,37 @@
 from flask import Flask, render_template, request
-import redis
-import json
+import os
+import time
+import pymysql
+from pymysql.cursors import DictCursor
 
 app = Flask(__name__)
 
-# Connect to Redis for history storage
-r = redis.Redis(host='catalog-db', port=6379, decode_responses=True)
+def get_connection():
+    for _ in range(30):
+        try:
+            return pymysql.connect(
+                host=os.getenv("MARIADB_HOST", "mariadb-max"),
+                port=int(os.getenv("MARIADB_PORT", "3306")),
+                user=os.getenv("MARIADB_USER", "history_app"),
+                password=os.getenv("MARIADB_PASSWORD", "history-password"),
+                database=os.getenv("MARIADB_DATABASE", "history"),
+                cursorclass=DictCursor,
+                autocommit=True,
+            )
+        except pymysql.MySQLError:
+            time.sleep(2)
+    raise RuntimeError("MariaDB is not available")
+
+
+def initialize_database():
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute("""CREATE TABLE IF NOT EXISTS plays (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(255) NOT NULL,
+                song_name VARCHAR(255) NOT NULL,
+                played_at VARCHAR(64) NOT NULL
+            )""")
 
 #when history page is loaded run below code
 @app.route('/history-page')
@@ -18,20 +44,13 @@ def history_page():
         # No user logged in
         return render_template('history-page.html.j2', username=None, history=[])
     
-    # Get user's listening history from Redis
-    history_key = f'history:{username}'
-    history_data = r.lrange(history_key, 0, -1)  # Get all items from list
-    
-    # Parse JSON strings back to objects
-    history = []
-    for item in history_data:
-        try:
-            history.append(json.loads(item))
-        except:
-            pass
-    
-    # Reverse to show most recent first
-    history.reverse()
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT song_name, played_at AS timestamp FROM plays WHERE username=%s ORDER BY id DESC LIMIT 100",
+                (username,),
+            )
+            history = cursor.fetchall()
     
     return render_template('history-page.html.j2', username=username, history=history)
 
@@ -44,18 +63,21 @@ def log_play():
     song_name = data.get('song_name')
     
     if username and song_name:
-        history_key = f'history:{username}'
-        history_entry = json.dumps({
-            'song_name': song_name,
-            'timestamp': data.get('timestamp', '')
-        })
-        # Add to the list (right push)
-        r.rpush(history_key, history_entry)
-        # Keep only last 100 plays
-        r.ltrim(history_key, -100, -1)
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO plays (username, song_name, played_at) VALUES (%s, %s, %s)",
+                    (username, song_name, data.get('timestamp', '')),
+                )
+                cursor.execute(
+                    """DELETE FROM plays WHERE username=%s AND id NOT IN
+                    (SELECT id FROM (SELECT id FROM plays WHERE username=%s ORDER BY id DESC LIMIT 100) recent)""",
+                    (username, username),
+                )
     
     return {'status': 'logged'}
 
 
 if __name__ == '__main__':
+    initialize_database()
     app.run(host='0.0.0.0', debug=True)

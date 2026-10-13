@@ -16,6 +16,26 @@ spec:
       - name: catalog-svc
         image: andriuskl/catalog-svc_1:2.0.5
         imagePullPolicy: IfNotPresent
+        env:
+        - name: MARIADB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MARIADB_HOST
+        - name: MARIADB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MARIADB_PORT
+        - name: MARIADB_USER
+          value: catalog_app
+        - name: MARIADB_DATABASE
+          value: catalog
+        - name: MARIADB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-app
+              key: catalogPassword
         # resources:
         #   limits:
         #     memory: "128Mi"
