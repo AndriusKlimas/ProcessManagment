@@ -5,10 +5,7 @@ namespace: music-app
 resources:
   - configmap.yml
   - secret.yml
-  - catalog-db-depl.yml
-  - catalog-db-svc.yml
-  - login-db-depl.yml
-  - login-db-svc.yml
+  - samba-storage.yml
   - catalog-svc-depl.yml
   - catalog-svc-svc.yml
   - shop-front-svc-depl.yml
