@@ -1,0 +1,14 @@
+services:
+  samba:
+    build: .
+    container_name: music-app-samba
+    tty: true
+    networks:
+      - kind-network
+    volumes:
+      - ./storage:/data/sambashare
+
+networks:
+  kind-network:
+    name: kind
+    external: true
