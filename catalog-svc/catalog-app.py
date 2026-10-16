@@ -1,11 +1,28 @@
 import json
 from flask import Flask, request
 import redis
+import os
+from redis.sentinel import Sentinel
+
 
 app = Flask(__name__)
 
+sentinel = Sentinel(
+    [
+        (
+            os.getenv("REDIS_SENTINEL_HOST", "redis"),
+            int(os.getenv("REDIS_SENTINEL_PORT", "26379")),
+        )
+    ],
+    socket_timeout=0.5,
+)
 
-r = redis.Redis(host="catalog-db", port=6379, decode_responses=True)
+r = sentinel.master_for(
+    os.getenv("REDIS_MASTER_NAME", "mymaster"),
+    db=int(os.getenv("REDIS_DB", "0")),
+    decode_responses=True,
+)
+# r = redis.Redis(host="catalog-db", port=6379, decode_responses=True)
 
 
 catalog = {"catalog": {

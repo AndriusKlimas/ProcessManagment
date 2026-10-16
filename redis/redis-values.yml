@@ -1,0 +1,21 @@
+architecture: replication
+
+auth:
+  enabled: false
+
+master:
+  persistence:
+    enabled: true
+    size: 1Gi
+
+replica:
+  replicaCount: 2
+  persistence:
+    enabled: true
+    size: 1Gi
+
+sentinel:
+  enabled: true
+  replicaCount: 3
+  primarySet: mymaster
+  quorum: 2
