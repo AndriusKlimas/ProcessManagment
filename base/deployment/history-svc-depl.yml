@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: history-svc
-        image: andriuskl/history-svc:3.0.1
+        image: andriuskl/history-svc:3.0.2
         imagePullPolicy: IfNotPresent
         # Environment variables for Redis connection
         env:

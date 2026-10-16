@@ -10,19 +10,19 @@ resources:
 images:
 - name: andriuskl/shop-front-svc
   newName: andriuskl/shop-front-svc
-  newTag: 3.0.1
+  newTag: 3.0.2
 - name: andriuskl/product-admin-svc
   newName: andriuskl/product-admin-svc
-  newTag: 3.0.1
+  newTag: 3.0.2
 - name: andriuskl/catalog-svc_1
   newName: andriuskl/catalog-svc_1
-  newTag: 3.0.1
+  newTag: 3.0.2
 - name: andriuskl/history-svc
   newName: andriuskl/history-svc
-  newTag: 3.0.1
+  newTag: 3.0.2
 - name: andriuskl/login-page-svc
   newName: andriuskl/login-page-svc
-  newTag: 3.0.1
+  newTag: 3.0.2
 - name: andriuskl/song-player-svc
   newName: andriuskl/song-player-svc
-  newTag: 3.0.1
+  newTag: 3.0.2

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: shop-front-svc
-        image: andriuskl/shop-front-svc:3.0.1
+        image: andriuskl/shop-front-svc:3.0.2
         imagePullPolicy: IfNotPresent
         # resources:
         #   limits:
