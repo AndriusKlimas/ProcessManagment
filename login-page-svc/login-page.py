@@ -1,9 +1,28 @@
 from flask import Flask, render_template, request, redirect, session, make_response
 import hashlib
 import redis
+import os
+from redis.sentinel import Sentinel
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # Required for session management
+
+sentinel = Sentinel(
+    [
+        (
+            os.getenv("REDIS_SENTINEL_HOST", "redis"),
+            int(os.getenv("REDIS_SENTINEL_PORT", "26379")),
+        )
+    ],
+    socket_timeout=0.5,
+)
+
+r = sentinel.master_for(
+    os.getenv("REDIS_MASTER_NAME", "mymaster"),
+    db=int(os.getenv("REDIS_DB", "1")),
+    decode_responses=True,
+)
+
 
 # Connect to Redis for user storage
 r = redis.Redis(host='login-db', port=6379, decode_responses=True)

@@ -6,10 +6,10 @@ resources:
   - configmap.yml
   - secret.yml
   - samba-storage.yml
-  - catalog-db-depl.yml
-  - catalog-db-svc.yml
-  - login-db-depl.yml
-  - login-db-svc.yml
+  # - catalog-db-depl.yml
+  # - catalog-db-svc.yml
+  # - login-db-depl.yml
+  # - login-db-svc.yml
   - catalog-svc-depl.yml
   - catalog-svc-svc.yml
   - shop-front-svc-depl.yml

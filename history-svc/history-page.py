@@ -1,11 +1,29 @@
 from flask import Flask, render_template, request
 import redis
 import json
+import os
+from redis.sentinel import Sentinel
 
 app = Flask(__name__)
 
-# Connect to Redis for history storage
-r = redis.Redis(host='catalog-db', port=6379, decode_responses=True)
+sentinel = Sentinel(
+    [
+        (
+            os.getenv("REDIS_SENTINEL_HOST", "redis"),
+            int(os.getenv("REDIS_SENTINEL_PORT", "26379")),
+        )
+    ],
+    socket_timeout=0.5,
+)
+
+r = sentinel.master_for(
+    os.getenv("REDIS_MASTER_NAME", "mymaster"),
+    db=int(os.getenv("REDIS_DB", "2")),
+    decode_responses=True,
+)
+
+# # Connect to Redis for history storage
+# r = redis.Redis(host='catalog-db', port=6379, decode_responses=True)
 
 
 #when history page is loaded run below code
