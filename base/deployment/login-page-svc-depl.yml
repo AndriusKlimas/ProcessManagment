@@ -16,26 +16,6 @@ spec:
       - name: login-page-svc
         image: andriuskl/login-page-svc:3.0.1
         imagePullPolicy: IfNotPresent
-        env:
-        - name: MARIADB_HOST
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: MARIADB_HOST
-        - name: MARIADB_PORT
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: MARIADB_PORT
-        - name: MARIADB_USER
-          value: login_app
-        - name: MARIADB_DATABASE
-          value: login
-        - name: MARIADB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mariadb-app
-              key: loginPassword
         # resources:
         #   limits:
         #     memory: "128Mi"

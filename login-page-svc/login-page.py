@@ -1,34 +1,13 @@
 from flask import Flask, render_template, request, redirect, session, make_response
 import hashlib
-import os
-import time
-import pymysql
-from pymysql.cursors import DictCursor
+import redis
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # Required for session management
 
-def get_connection():
-    for _ in range(30):
-        try:
-            return pymysql.connect(
-                host=os.getenv("MARIADB_HOST", "mariadb-max"),
-                port=int(os.getenv("MARIADB_PORT", "3306")),
-                user=os.getenv("MARIADB_USER", "login_app"),
-                password=os.getenv("MARIADB_PASSWORD", "login-password"),
-                database=os.getenv("MARIADB_DATABASE", "login"),
-                cursorclass=DictCursor,
-                autocommit=True,
-            )
-        except pymysql.MySQLError:
-            time.sleep(2)
-    raise RuntimeError("MariaDB is not available")
+# Connect to Redis for user storage
+r = redis.Redis(host='login-db', port=6379, decode_responses=True)
 
-
-def initialize_database():
-    with get_connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute("CREATE TABLE IF NOT EXISTS users (username VARCHAR(255) PRIMARY KEY, password_hash CHAR(64) NOT NULL)")
 
 #privating the password
 def hash_password(password):
@@ -48,11 +27,7 @@ def login():
     username = request.form.get('username')
     password = request.form.get('password')
     
-    with get_connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT password_hash FROM users WHERE username=%s", (username,))
-            user = cursor.fetchone()
-    stored_password = user["password_hash"] if user else None
+    stored_password = r.get(f'user:{username}')
     
     if stored_password is None:
         # User doesn't exist
@@ -85,15 +60,10 @@ def signup():
         return render_template('login-page.html.j2', error='Passwords do not match.')
     
     # Check if user already exists
-    with get_connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT 1 FROM users WHERE username=%s", (username,))
-            if cursor.fetchone():
-                return render_template('login-page.html.j2', error='Username already exists.')
-            cursor.execute(
-                "INSERT INTO users (username, password_hash) VALUES (%s, %s)",
-                (username, hash_password(password)),
-            )
+    if r.exists(f'user:{username}'):
+        return render_template('login-page.html.j2', error='Username already exists.')
+
+    r.set(f'user:{username}', hash_password(password))
     
     return render_template('login-page.html.j2', success='Account created successfully! You can now login.')
 
@@ -108,5 +78,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    initialize_database()
     app.run(host='0.0.0.0', debug=True)
