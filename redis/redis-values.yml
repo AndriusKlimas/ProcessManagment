@@ -1,4 +1,5 @@
 architecture: replication
+fullnameOverride: redis
 
 auth:
   enabled: false
@@ -16,6 +17,5 @@ replica:
 
 sentinel:
   enabled: true
-  replicaCount: 3
-  primarySet: mymaster
+  masterSet: mymaster
   quorum: 2

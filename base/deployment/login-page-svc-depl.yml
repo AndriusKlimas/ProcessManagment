@@ -22,3 +22,12 @@ spec:
         #     cpu: "150m"
         ports:
         - containerPort: 5000
+        env:
+        - name: REDIS_SENTINEL_HOST
+          value: redis
+        - name: REDIS_SENTINEL_PORT
+          value: "26379"
+        - name: REDIS_MASTER_NAME
+          value: "mymaster"
+        - name: REDIS_DB
+          value: "1"

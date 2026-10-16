@@ -18,19 +18,29 @@ spec:
         imagePullPolicy: IfNotPresent
         # Environment variables for Redis connection
         env:
-        - name: REDIS_HOST
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: HISTORY_REDIS_HOST
-        - name: REDIS_PORT
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: HISTORY_REDIS_PORT
+        - name: REDIS_SENTINEL_HOST
+          value: redis
+        - name: REDIS_SENTINEL_PORT
+          value: "26379"
+        - name: REDIS_MASTER_NAME
+          value: "mymaster"
+        - name: REDIS_DB
+          value: "2"
+        # - name: REDIS_HOST
+        #   valueFrom:
+        #     configMapKeyRef:
+        #       name: app-config
+        #       key: HISTORY_REDIS_HOST
+        # - name: REDIS_PORT
+        #   valueFrom:
+        #     configMapKeyRef:
+        #       name: app-config
+        #       key: HISTORY_REDIS_PORT
         # resources:
         #   limits:
         #     memory: "128Mi"
         #     cpu: "200m"
         ports:
         - containerPort: 5000
+
+        

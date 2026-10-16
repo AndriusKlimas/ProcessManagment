@@ -24,8 +24,8 @@ r = sentinel.master_for(
 )
 
 
-# Connect to Redis for user storage
-r = redis.Redis(host='login-db', port=6379, decode_responses=True)
+# # Connect to Redis for user storage
+# r = redis.Redis(host='login-db', port=6379, decode_responses=True)
 
 
 #privating the password
