@@ -22,8 +22,15 @@ data:
       Parser cri
 
     [OUTPUT]
-      Name stdout
-      Match *
+      Name es
+      Match kube.*
+      Host quickstart-es-http.logging.svc.cluster.local
+      Port 9200
+      HTTP_User elastic
+      HTTP_Passwd G78PdhgU62TSD7O57TG81R5o
+      Index fluent-bit
+      Suppress_Type_Name On
+      Include_Tag_Key On
 
   # Parser definitions used by fluent-bit.conf.
   parsers.conf: |-
