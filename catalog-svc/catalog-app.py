@@ -27,6 +27,8 @@ r = sentinel.master_for(
     os.getenv("REDIS_MASTER_NAME", "mymaster"),
     db=int(os.getenv("REDIS_DB", "0")),
     decode_responses=True,
+    socket_timeout=0.5,
+    socket_connect_timeout=0.5,
 )
 # r = redis.Redis(host="catalog-db", port=6379, decode_responses=True)
 

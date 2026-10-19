@@ -26,6 +26,8 @@ r = sentinel.master_for(
     os.getenv("REDIS_MASTER_NAME", "mymaster"),
     db=int(os.getenv("REDIS_DB", "2")),
     decode_responses=True,
+    socket_timeout=0.5,
+    socket_connect_timeout=0.5,
 )
 
 # # Connect to Redis for history storage

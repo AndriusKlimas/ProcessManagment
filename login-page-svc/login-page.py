@@ -27,6 +27,8 @@ r = sentinel.master_for(
     os.getenv("REDIS_MASTER_NAME", "mymaster"),
     db=int(os.getenv("REDIS_DB", "1")),
     decode_responses=True,
+    socket_timeout=0.5,
+    socket_connect_timeout=0.5,
 )
 
 
@@ -90,11 +92,28 @@ def signup():
         return render_template('login-page.html.j2', error='Passwords do not match.')
     
     # Check if user already exists
-    if r.exists(f'user:{username}'):
+    try:
+        user_exists = r.exists(f'user:{username}')
+    except redis.exceptions.RedisError:
+        logger.exception("Unable to check whether user %s already exists", username)
+        return render_template(
+            'login-page.html.j2',
+            error='The account service is temporarily unavailable. Please try again.',
+        ), 503
+
+    if user_exists:
         logger.info("Signup rejected: user %s already exists", username)
         return render_template('login-page.html.j2', error='Username already exists.')
 
-    r.set(f'user:{username}', hash_password(password))
+    try:
+        r.set(f'user:{username}', hash_password(password))
+    except redis.exceptions.RedisError:
+        logger.exception("Unable to create account for user %s", username)
+        return render_template(
+            'login-page.html.j2',
+            error='The account service is temporarily unavailable. Please try again.',
+        ), 503
+
     logger.info("Created account for user %s", username)
     return render_template('login-page.html.j2', success='Account created successfully! You can now login.')
 
