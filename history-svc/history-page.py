@@ -1,9 +1,15 @@
 from flask import Flask, render_template, request
 import redis
+import logging
 import json
 import os
 from redis.sentinel import Sentinel
 
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 sentinel = Sentinel(
@@ -35,6 +41,7 @@ def history_page():
     
     if not username:
         # No user logged in
+        logger.info("History requested without an authenticated user")
         return render_template('history-page.html.j2', username=None, history=[])
     
     history_key = f'history:{username}'
@@ -48,6 +55,7 @@ def history_page():
             pass
 
     history.reverse()
+    logger.info("Loaded %d history entries for user %s", len(history), username)
     
     return render_template('history-page.html.j2', username=username, history=history)
 
@@ -67,9 +75,13 @@ def log_play():
         })
         r.rpush(history_key, history_entry)
         r.ltrim(history_key, -100, -1)
+        logger.info("Recorded play for user %s", username)
+    else:
+        logger.info("Ignored play request with missing user or song")
     
     return {'status': 'logged'}
 
 
 if __name__ == '__main__':
+    logger.info("Starting history service")
     app.run(host='0.0.0.0', debug=True)

@@ -1,10 +1,16 @@
 import json
+import logging
 from flask import Flask, request
 import redis
 import os
 from redis.sentinel import Sentinel
 
 
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 sentinel = Sentinel(
@@ -37,6 +43,7 @@ catalog = {"catalog": {
 def get_catalog():
     """ Return the catalog as a JASON """
     data = r.hgetall("catalog")
+    logger.info("Loaded %d products from catalog", len(data))
 
     for key in data.keys():
         data[key] = json.loads(data[key])
@@ -63,11 +70,13 @@ def add_product():
     key = request.json['name'] + "-" + request.json['artist']
 
     r.hset("catalog", key=key, value=json.dumps(product))
+    logger.info("Added product %s to catalog", key)
 
 
     return{"Status": "Product added successfully"}
 
 
 if __name__ == '__main__':
+    logger.info("Starting catalog service")
     app.run(debug=True, host='0.0.0.0', port=5000)
 

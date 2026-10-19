@@ -1,9 +1,15 @@
 from flask import Flask, render_template, request, redirect, session, make_response
 import hashlib
+import logging
 import redis
 import os
 from redis.sentinel import Sentinel
 
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # Required for session management
 
@@ -50,6 +56,7 @@ def login():
     
     if stored_password is None:
         # User doesn't exist
+        logger.info("Login failed: user %s does not exist", username)
         return render_template('login-page.html.j2', error='User does not exist. Please sign up first.')
     
     # Verify password
@@ -58,8 +65,10 @@ def login():
         #session['username'] = username
         resp = make_response(redirect('/get-catalog'))
         resp.set_cookie('userID', username, path='/', samesite='Lax')
+        logger.info("Login successful for user %s", username)
         return resp
     else:
+        logger.info("Login failed: invalid password for user %s", username)
         return render_template('login-page.html.j2', error='Invalid password.')
 
 #when signup function is ran, in html file
@@ -72,18 +81,21 @@ def signup():
     
     # Validate inputs
     if not username or not password:
+        logger.info("Signup rejected: missing username or password")
         return render_template('login-page.html.j2', error='Username and password are required.')
     
     # Check if passwords match
     if password != confirm_password:
+        logger.info("Signup rejected: passwords do not match for user %s", username)
         return render_template('login-page.html.j2', error='Passwords do not match.')
     
     # Check if user already exists
     if r.exists(f'user:{username}'):
+        logger.info("Signup rejected: user %s already exists", username)
         return render_template('login-page.html.j2', error='Username already exists.')
 
     r.set(f'user:{username}', hash_password(password))
-    
+    logger.info("Created account for user %s", username)
     return render_template('login-page.html.j2', success='Account created successfully! You can now login.')
 
 #when user logs out, found on all pages
@@ -93,8 +105,10 @@ def logout():
     #session.pop('username', None)
     resp = make_response(redirect('/login-page'))
     resp.set_cookie('userID', '', path='/', expires=0, max_age=0)
+    logger.info("User logged out")
     return resp
 
 
 if __name__ == '__main__':
+    logger.info("Starting login service")
     app.run(host='0.0.0.0', debug=True)

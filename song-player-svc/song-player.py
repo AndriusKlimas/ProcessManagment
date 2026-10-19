@@ -6,9 +6,16 @@ Only displays ONE song at a time - the song list is shown on shop-front page.
 """
 
 from flask import Flask, render_template, request
+import logging
+import os
 import requests
 from datetime import datetime
 
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # Base URL where MP3 files are served by nginx (running on port 8081)
@@ -38,6 +45,11 @@ def play_song(audio_filename):
         if song.get('audio_mp3') == audio_filename:
             song_to_play = song
             break
+
+    if song_to_play:
+        logger.info("Found song %s for playback", song_to_play.get('name', 'Unknown'))
+    else:
+        logger.info("Song not found for playback request: %s", audio_filename)
     
     # Log the play to history if user is logged in
     username = request.cookies.get('userID')
@@ -50,8 +62,9 @@ def play_song(audio_filename):
                              'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                          },
                          timeout=2)
-        except:
-            pass  # Don't fail if history logging fails
+            logger.info("Sent playback history for user %s", username)
+        except requests.RequestException:
+            logger.warning("Unable to send playback history for user %s", username)
     
     # Render the template with the single song (or None if not found)
     return render_template("song-player.html.j2", 
@@ -61,4 +74,5 @@ def play_song(audio_filename):
 
 
 if __name__ == '__main__':
+    logger.info("Starting song player service")
     app.run(debug=True, host='0.0.0.0', port=5000)
