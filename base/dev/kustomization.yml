@@ -6,6 +6,7 @@ namespace: music-app
 resources:
   - ./../deployment
   - ./ingress-gateway.yml
+  - ./audio-ingress.yml
 
 images:
 - name: andriuskl/shop-front-svc

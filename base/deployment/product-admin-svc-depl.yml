@@ -16,9 +16,16 @@ spec:
       - name: product-admin-svc
         image: andriuskl/product-admin-svc:3.0.2
         imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: song-storage
+          mountPath: /root/app/song-locations
         # resources:
         #   limits:
         #     memory: "128Mi"
         #     cpu: "500m"
         ports:
         - containerPort: 5000
+      volumes:
+      - name: song-storage
+        persistentVolumeClaim:
+          claimName: song-storage

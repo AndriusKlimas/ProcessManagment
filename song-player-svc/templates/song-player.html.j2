@@ -53,7 +53,7 @@
             <!-- Audio player - combines base URL + audio_mp3 filename -->
             {% if song.audio_mp3 %}
             <audio controls autoplay>
-                <source src="{{ audio_base_url }}{{ song.audio_mp3 }}" type="audio/mpeg">
+                <source src="{{ audio_base_url }}{{ song.audio_mp3 | urlencode }}" type="audio/mpeg">
                 Your browser does not support the audio element.
             </audio>
             <small class="text-muted d-block mt-2">

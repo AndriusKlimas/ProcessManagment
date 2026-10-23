@@ -18,8 +18,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
-# Base URL where MP3 files are served by nginx (running on port 8081)
-AUDIO_BASE_URL = "http://localhost:8081/"
+# Audio files are served through the Kubernetes Ingress.
+AUDIO_BASE_URL = "/audio/"
 
 
 @app.route('/play-songs/<audio_filename>')
