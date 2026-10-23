@@ -25,6 +25,17 @@ spec:
             cpu: "150m"
         ports:
         - containerPort: 5000
+        livenessProbe:
+          tcpSocket:
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        
         env:
         - name: REDIS_SENTINEL_HOST
           value: redis
