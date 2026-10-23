@@ -55,7 +55,7 @@ def play_song(audio_filename):
     username = request.cookies.get('userID')
     if username and song_to_play:
         try:
-            requests.post("http://history:5000/log-play", 
+            requests.post("http://history-svc:5000/log-play", 
                          json={
                              'username': username,
                              'song_name': song_to_play.get('name', 'Unknown'),
