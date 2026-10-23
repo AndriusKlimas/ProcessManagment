@@ -16,10 +16,13 @@ spec:
       - name: catalog-svc
         image: andriuskl/catalog-svc_1:3.0.2
         imagePullPolicy: IfNotPresent
-        # resources:
-        #   limits:
-        #     memory: "128Mi"
-        #     cpu: "500m"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
         ports:
         - containerPort: 5000
         env:
