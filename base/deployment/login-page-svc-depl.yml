@@ -16,10 +16,13 @@ spec:
       - name: login-page-svc
         image: andriuskl/login-page-svc:3.0.3
         imagePullPolicy: IfNotPresent
-        # resources:
-        #   limits:
-        #     memory: "128Mi"
-        #     cpu: "150m"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "150m"
+          limits:
+            memory: "128Mi"
+            cpu: "150m"
         ports:
         - containerPort: 5000
         env:
