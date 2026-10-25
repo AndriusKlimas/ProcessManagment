@@ -10,4 +10,4 @@ spec:
     name: catalog-svc-depl
   minReplicas: 2
   maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
+  targetCPUUtilizationPercentage: 2
