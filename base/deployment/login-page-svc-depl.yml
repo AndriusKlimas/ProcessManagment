@@ -28,13 +28,17 @@ spec:
         livenessProbe:
           tcpSocket:
             port: 5000
-          initialDelaySeconds: 5
+          initialDelaySeconds: 15
           periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 5
         readinessProbe:
           tcpSocket:
             port: 5000
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 5
         
         env:
         - name: REDIS_SENTINEL_HOST
